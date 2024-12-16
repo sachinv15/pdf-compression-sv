@@ -18,10 +18,18 @@ def compress_pdf(input_path, output_path):
         'gs',
         '-sDEVICE=pdfwrite',
         '-dCompatibilityLevel=1.4',
-        '-dPDFSETTINGS=/ebook',
         '-dNOPAUSE',
         '-dQUIET',
         '-dBATCH',
+        '-dColorImageResolution=200',  # Adjust this value
+        '-dGrayImageResolution=200',   # Adjust this value
+        '-dMonoImageResolution=200',   # Adjust this value
+        '-dDownsampleColorImages=true',
+        '-dDownsampleGrayImages=true',
+        '-dDownsampleMonoImages=true',
+        '-dColorImageDownsampleType=/Bicubic',
+        '-dGrayImageDownsampleType=/Bicubic',
+        '-dMonoImageDownsampleType=/Bicubic',
         f'-sOutputFile={output_path}',
         input_path
     ]
