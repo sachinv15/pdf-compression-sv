@@ -1,4 +1,4 @@
 fastapi
 python-multipart
-ghostscript
+PyPDF2
 uvicorn
