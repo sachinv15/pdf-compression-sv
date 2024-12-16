@@ -1,2 +1,3 @@
-Flask
-ghostscript
+   Flask
+   flask-cors
+   gunicorn
