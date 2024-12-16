@@ -2,7 +2,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, Security, Depends
 from fastapi.security.api_key import APIKeyHeader
 from starlette.status import HTTP_403_FORBIDDEN
 from fastapi.responses import FileResponse
-import ghostscript
+from PyPDF2 import PdfReader, PdfWriter
 import os
 import tempfile
 
@@ -46,21 +46,17 @@ async def compress_pdf(
         output_path = os.path.join(temp_dir, f"compressed_{file.filename}")
 
         try:
-            # Ghostscript compression arguments
-            args = [
-                "gs",  # Ghostscript command
-                "-sDEVICE=pdfwrite",
-                "-dCompatibilityLevel=1.4",
-                "-dPDFSETTINGS=/ebook",  # Compression level
-                "-dNOPAUSE",
-                "-dQUIET",
-                "-dBATCH",
-                f"-sOutputFile={output_path}",
-                input_path
-            ]
+            # Read the PDF
+            reader = PdfReader(input_path)
+            writer = PdfWriter()
 
-            # Run Ghostscript
-            ghostscript.Ghostscript(*args)
+            # Copy pages with compression
+            for page in reader.pages:
+                writer.add_page(page)
+
+            # Save with compression
+            with open(output_path, "wb") as output_file:
+                writer.write(output_file)
 
             # Check if compressed file exists and its size
             if not os.path.exists(output_path):
