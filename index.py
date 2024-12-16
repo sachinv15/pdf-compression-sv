@@ -21,9 +21,9 @@ def compress_pdf(input_path, output_path):
         '-dNOPAUSE',
         '-dQUIET',
         '-dBATCH',
-        '-dColorImageResolution=200',  # Adjust this value
-        '-dGrayImageResolution=200',   # Adjust this value
-        '-dMonoImageResolution=200',   # Adjust this value
+        '-dColorImageResolution=220',  # Adjust this value
+        '-dGrayImageResolution=220',   # Adjust this value
+        '-dMonoImageResolution=220',   # Adjust this value
         '-dDownsampleColorImages=true',
         '-dDownsampleGrayImages=true',
         '-dDownsampleMonoImages=true',
@@ -37,7 +37,7 @@ def compress_pdf(input_path, output_path):
 
 @app.route('/')
 def home():
-    return "Welcome to the PDF Compression API!"
+    return "Welcome to the PDF Compression API by TNMServices.com!"
 
 @app.route('/compress', methods=['POST'])
 def compress():
