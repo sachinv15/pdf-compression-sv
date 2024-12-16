@@ -13,12 +13,12 @@ MAX_FILE_SIZE_MB = 2
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 def compress_pdf(input_path, output_path):
-    """Compress PDF using Ghostscript."""
+    """Compress PDF using Ghostscript with higher quality settings."""
     command = [
         'gs',
         '-sDEVICE=pdfwrite',
         '-dCompatibilityLevel=1.4',
-        '-dPDFSETTINGS=/screen',
+        '-dPDFSETTINGS=/printer',
         '-dNOPAUSE',
         '-dQUIET',
         '-dBATCH',
