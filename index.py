@@ -18,7 +18,7 @@ def compress_pdf(input_path, output_path):
         'gs',
         '-sDEVICE=pdfwrite',
         '-dCompatibilityLevel=1.4',
-        '-dPDFSETTINGS=/printer',
+        '-dPDFSETTINGS=/ebook',
         '-dNOPAUSE',
         '-dQUIET',
         '-dBATCH',
