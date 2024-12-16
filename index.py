@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 
 # Configuration
-API_KEY = 'your_api_key_here'
+API_KEY = 'tnm123'
 UPLOAD_FOLDER = '/tmp'
 MAX_FILE_SIZE_MB = 2
 
