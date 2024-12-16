@@ -1,86 +1,70 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Security, Depends
-from fastapi.security.api_key import APIKeyHeader
-from starlette.status import HTTP_403_FORBIDDEN
-from fastapi.responses import FileResponse
-from PyPDF2 import PdfReader, PdfWriter
+from flask import Flask, request, jsonify, send_file
 import os
-import tempfile
+import subprocess
+from werkzeug.utils import secure_filename
 
-app = FastAPI()
+app = Flask(__name__)
 
-# API Key configuration
-API_KEY = "your-secret-api-key"  # Change this to your desired API key
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+# Configuration
+API_KEY = 'your_api_key_here'
+UPLOAD_FOLDER = '/tmp'
+MAX_FILE_SIZE_MB = 2
 
-async def get_api_key(api_key_header: str = Security(api_key_header)):
-    if api_key_header == API_KEY:
-        return api_key_header
-    raise HTTPException(
-        status_code=HTTP_403_FORBIDDEN, detail="Could not validate API key"
-    )
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Home endpoint for testing
-@app.get("/")
-async def home():
-    return {"message": "PDF Compression API is running"}
+def compress_pdf(input_path, output_path):
+    """Compress PDF using Ghostscript."""
+    command = [
+        'gs',
+        '-sDEVICE=pdfwrite',
+        '-dCompatibilityLevel=1.4',
+        '-dPDFSETTINGS=/screen',
+        '-dNOPAUSE',
+        '-dQUIET',
+        '-dBATCH',
+        f'-sOutputFile={output_path}',
+        input_path
+    ]
+    subprocess.run(command, check=True)
 
-# PDF compression endpoint
-@app.post("/compress")
-async def compress_pdf(
-    file: UploadFile = File(...),
-    api_key: str = Depends(get_api_key)
-):
-    # Check if the uploaded file is a PDF
-    if not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="File must be a PDF")
+@app.route('/')
+def home():
+    return "Welcome to the PDF Compression API!"
 
-    # Create temporary directory
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # Save uploaded file
-        input_path = os.path.join(temp_dir, file.filename)
-        with open(input_path, "wb") as buffer:
-            content = await file.read()
-            buffer.write(content)
+@app.route('/compress', methods=['POST'])
+def compress():
+    # Check API key
+    api_key = request.headers.get('x-api-key')
+    if api_key != API_KEY:
+        return jsonify({'error': 'Unauthorized'}), 401
 
-        # Create output path
-        output_path = os.path.join(temp_dir, f"compressed_{file.filename}")
+    # Check if a file is provided
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
 
-        try:
-            # Read the PDF
-            reader = PdfReader(input_path)
-            writer = PdfWriter()
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
 
-            # Copy pages with compression
-            for page in reader.pages:
-                writer.add_page(page)
+    # Save the file
+    filename = secure_filename(file.filename)
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(input_path)
 
-            # Save with compression
-            with open(output_path, "wb") as output_file:
-                writer.write(output_file)
+    # Compress the PDF
+    output_path = os.path.join(app.config['UPLOAD_FOLDER'], f'compressed_{filename}')
+    try:
+        compress_pdf(input_path, output_path)
+    except subprocess.CalledProcessError:
+        return jsonify({'error': 'Failed to compress PDF'}), 500
 
-            # Check if compressed file exists and its size
-            if not os.path.exists(output_path):
-                raise HTTPException(status_code=500, detail="Compression failed")
+    # Check the file size
+    if os.path.getsize(output_path) > MAX_FILE_SIZE_MB * 1024 * 1024:
+        os.remove(output_path)
+        return jsonify({'error': 'Compressed file is larger than 2MB'}), 400
 
-            # Check file size (2MB = 2 * 1024 * 1024 bytes)
-            if os.path.getsize(output_path) > 2 * 1024 * 1024:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Compressed file size is still larger than 2MB"
-                )
+    # Send the compressed file back
+    return send_file(output_path, as_attachment=True, download_name=filename)
 
-            # Return the compressed file
-            return FileResponse(
-                output_path,
-                media_type="application/pdf",
-                filename=file.filename
-            )
-
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-
-if __name__ == "__main__":
-    import uvicorn
-    # Get port from environment variable (for Railway deployment)
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+if __name__ == '__main__':
+    app.run(debug=True)
